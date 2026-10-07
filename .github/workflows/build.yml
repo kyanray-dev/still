@@ -22,7 +22,8 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
-      - run: npx playwright install --with-deps chromium webkit
+      - run: npx playwright install --with-deps ${{ runner.os == 'macOS' && 'webkit' || 'chromium' }}
+        timeout-minutes: 5
       - run: npm run test:e2e
         env:
           PLAYWRIGHT_BROWSER: ${{ runner.os == 'macOS' && 'webkit' || 'chromium' }}
