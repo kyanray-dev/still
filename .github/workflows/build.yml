@@ -1,0 +1,42 @@
+name: Build and verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '26'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx playwright install --with-deps chromium webkit
+      - run: npm run test:e2e
+        env:
+          PLAYWRIGHT_BROWSER: ${{ runner.os == 'macOS' && 'webkit' || 'chromium' }}
+      - run: npm run native:update
+      - run: npm run build
+      - run: node scripts/test-native.mjs
+        if: runner.os == 'Windows'
+      - run: npm run package
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: still-${{ matrix.os }}
+          path: |
+            release/*.zip
+            release/SHA256SUMS.txt
+            test-results/*/report/
+            test-results/native/results.json
