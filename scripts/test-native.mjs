@@ -1,11 +1,12 @@
 import { chromium, expect } from '@playwright/test';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { mkdir, writeFile, copyFile, readFile, unlink, readdir, chmod } from 'node:fs/promises';
 import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { join, basename, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 
 if (process.platform !== 'win32') {
   console.log('Native WebView2 smoke test requires Windows; no other platform is marked passed.');
@@ -45,6 +46,7 @@ let failed = false;
 let activeLaunch;
 const launches = [];
 const startupTimeoutMs = process.env.CI ? 60000 : 20000;
+const webviewData = process.env.CI ? join(tmpdir(), 'still-native-webview-data') : join(work, 'webview-data');
 const outputLimit = 16 * 1024;
 function redact(value) {
   return String(value)
@@ -93,7 +95,11 @@ async function launch(args = []) {
   ], {
     cwd: join(root, 'dist-native', 'liubai'),
     windowsHide: true,
-    env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`, WEBVIEW2_USER_DATA_FOLDER: join(work, 'webview-data') },
+    env: {
+      ...process.env,
+      WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}${process.env.CI ? ' --disable-gpu' : ''}`,
+      WEBVIEW2_USER_DATA_FOLDER: webviewData,
+    },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   record.pid = child.pid ?? null;
@@ -391,6 +397,12 @@ try {
   console.log(JSON.stringify(result, null, 2));
 } catch (error) {
   failed = true;
+  if (process.env.CI && activeLaunch && child?.pid) {
+    const processState = spawnSync('powershell.exe', ['-NoProfile', '-Command',
+      `Get-Process -Id ${child.pid} -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, SessionId, MainWindowTitle | ConvertTo-Json -Compress; Get-Process msedgewebview2 -ErrorAction SilentlyContinue | Select-Object Id, ProcessName, SessionId | ConvertTo-Json -Compress`,
+    ], { windowsHide: true, encoding: 'utf8', timeout: 5000, maxBuffer: outputLimit });
+    activeLaunch.processState = redact(processState.stdout || processState.error?.message || 'No process information available.');
+  }
   const diagnostic = activePage ? await bounded(activePage.evaluate(() => ({ mode: globalThis.NL_MODE, toast: document.querySelector('#toast')?.textContent, globalsInjected: globalThis.NL_GINJECTED })), 1500) : undefined;
   await writeFile(join(work, 'results.json'), JSON.stringify({ artifact, passed: false, checks, errors, diagnostic, error: error.message }, null, 2));
   throw error;
