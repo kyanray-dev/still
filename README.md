@@ -116,6 +116,8 @@ node scripts/test-native.mjs
 
 [构建工作流](.github/workflows/build.yml)包含 Windows/macOS 构建与测试配置；远程执行状态以仓库 Actions 记录为准。
 
+当前已知验证限制：[Windows 云端原生检查](https://github.com/kyanray-dev/still/actions/runs/37602324943)连接桌面调试端点超时，尚未通过；同一运行中的单元测试、浏览器界面测试及构建已通过。本机 Windows 的 21 项真实 WebView2 检查已通过。云端超时的具体原因仍未确定，未跳过失败检查或将其标为成功。
+
 ## 实现与许可
 
 TypeScript、Vite 与 [Neutralinojs](https://neutralino.js.org/docs/)。可视编辑使用 ProseMirror，源码编辑使用 CodeMirror 6；Markdown 由 markdown-it 解析、DOMPurify 清洗，highlight.js 和 KaTeX 分别处理代码与公式。界面使用系统字体和自制 SVG 图标。

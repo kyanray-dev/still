@@ -116,6 +116,8 @@ These tests launch real, hidden desktop windows and verify the UI and file savin
 
 The [build workflow](.github/workflows/build.yml) defines Windows/macOS builds and tests. Check the repository's Actions history for remote execution results.
 
+Known validation limitation: the [hosted Windows native check](https://github.com/kyanray-dev/still/actions/runs/37602324943) times out while connecting to the desktop debugging endpoint and has not passed. Unit tests, browser interface tests, and the build passed in that run. All 21 real WebView2 checks passed on the local Windows machine. The hosted timeout remains unexplained; the failing check has not been skipped or marked successful.
+
 ## Built with and license
 
 TypeScript, Vite, and [Neutralinojs](https://neutralino.js.org/docs/). ProseMirror handles visual editing and CodeMirror 6 handles source editing. markdown-it parses Markdown, DOMPurify sanitizes it, and highlight.js and KaTeX render code and math. The interface uses system fonts and original SVG icons.

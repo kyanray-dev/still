@@ -121,7 +121,7 @@ async function launch(args = []) {
     if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Native host exited with code ${child.exitCode}, signal ${child.signalCode}`);
     await new Promise(resolve => setTimeout(resolve, Math.max(0, Math.min(250, deadline - Date.now()))));
   }
-  if (!connected) { record.phase = 'webview-startup-timeout'; throw new Error(`WebView2 did not start within ${startupTimeoutMs / 1000} seconds.`); }
+  if (!connected) { record.phase = 'cdp-endpoint-timeout'; throw new Error(`WebView2 debugging endpoint was not reachable within ${startupTimeoutMs / 1000} seconds.`); }
   record.phase = 'connecting-cdp';
   record.connectedAt = new Date().toISOString();
   browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: startupTimeoutMs });
