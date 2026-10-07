@@ -17,7 +17,7 @@ Still uses the system WebView without bundling a browser. No account is required
 
 Check the [release page](https://github.com/kyanray-dev/still/releases/latest) for available packages and checksums, or build from source below. Keep macOS and Safari updated; the minimum WebKit version is needed for [regular expression support](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/) used by the editor.
 
-**Current packages are unsigned. The macOS package is not notarized and has not been tested on a physical Mac.** Native WebView2 and Chromium/WebKit interface tests have run on Windows. The macOS application structure and both binary architectures have been checked. If your system blocks launch, verify the download's origin before using the system's option to allow it.
+**Current packages are unsigned. The macOS package is not notarized and has not been tested on a physical Mac.** Native WebView2 and Chromium/WebKit interface tests have run on Windows. A GitHub macOS runner passed 86 unit tests, 42 WebKit interface tests, and build/packaging checks; native macOS application interactions remain unverified. If your system blocks launch, verify the download's origin before using the system's option to allow it.
 
 ## Write on the page
 

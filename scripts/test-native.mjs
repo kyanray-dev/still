@@ -41,13 +41,42 @@ let child;
 let browser;
 let activePage;
 let storageBackup;
-async function stop() {
-  if (browser) { await browser.close().catch(() => {}); browser = undefined; }
-  if (child && child.exitCode === null) {
-    const exited = once(child, 'exit');
-    child.kill();
-    await Promise.race([exited, new Promise(resolve => setTimeout(resolve, 4000))]);
+let failed = false;
+let activeLaunch;
+const launches = [];
+const startupTimeoutMs = process.env.CI ? 60000 : 20000;
+const outputLimit = 16 * 1024;
+function redact(value) {
+  return String(value)
+    .replace(/^.*(?:token|password|secret|authorization|credential|api.?key|private.?key).*$/gim, '[REDACTED SENSITIVE LOG LINE]')
+    .replace(/https?:\/\/[^\s/@]+:[^\s/@]+@/gi, 'https://[REDACTED]@')
+    .replace(/[A-Za-z0-9+/_=-]{32,}/g, '[REDACTED OPAQUE VALUE]');
+}
+function capture(record, stream, chunk) {
+  const combined = record[stream] + chunk;
+  record[`${stream}Truncated`] ||= combined.length > outputLimit;
+  if (combined.length <= outputLimit) record[stream] = combined;
+  else {
+    const tail = combined.slice(-outputLimit);
+    const newline = tail.indexOf('\n');
+    record[stream] = newline < 0 ? '' : tail.slice(newline + 1);
   }
+}
+async function bounded(promise, milliseconds) {
+  let timer;
+  try { return await Promise.race([promise.catch(() => undefined), new Promise(resolve => { timer = setTimeout(resolve, milliseconds); })]); }
+  finally { clearTimeout(timer); }
+}
+async function stop() {
+  if (browser) { await bounded(browser.close(), 4000); browser = undefined; }
+  activePage = undefined;
+  if (child && child.pid && child.exitCode === null && child.signalCode === null) {
+    if (activeLaunch) activeLaunch.cleanupRequested = true;
+    const exited = once(child, 'exit').catch(() => undefined);
+    try { child.kill(); } catch (error) { if (activeLaunch) activeLaunch.cleanupError = redact(error.message); }
+    await bounded(exited, 4000);
+  }
+  if (activeLaunch && child) { activeLaunch.finalExitCode = child.exitCode; activeLaunch.finalSignal = child.signalCode; activeLaunch.stillRunningAfterCleanup = Boolean(child.pid && child.exitCode === null && child.signalCode === null); }
   child = undefined;
 }
 async function launch(args = []) {
@@ -56,6 +85,9 @@ async function launch(args = []) {
   await once(server, 'listening');
   const port = server.address().port;
   await new Promise(resolve => server.close(resolve));
+  const record = { attempt: launches.length + 1, startedAt: new Date().toISOString(), port, startupTimeoutMs, phase: 'starting', stdout: '', stderr: '', stdoutTruncated: false, stderrTruncated: false };
+  launches.push(record);
+  activeLaunch = record;
   child = spawn(join(root, 'dist-native', 'liubai', 'liubai-win_x64.exe'), [
     '--window-hidden=true', '--window-use-saved-state=false', '--window-width=1180', '--window-height=820', ...args,
   ], {
@@ -64,18 +96,30 @@ async function launch(args = []) {
     env: { ...process.env, WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS: `--remote-debugging-port=${port}`, WEBVIEW2_USER_DATA_FOLDER: join(work, 'webview-data') },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  child.on('error', error => errors.push(`Launch: ${error.message}`));
+  record.pid = child.pid ?? null;
+  child.stdout.setEncoding('utf8');
+  child.stderr.setEncoding('utf8');
+  child.stdout.on('data', chunk => capture(record, 'stdout', chunk));
+  child.stderr.on('data', chunk => capture(record, 'stderr', chunk));
+  child.on('error', error => { record.spawnError = redact(error.message); errors.push(`Launch: ${record.spawnError}`); });
+  child.on('exit', (code, signal) => { record.exitedAt = new Date().toISOString(); record.exitCode = code; record.signal = signal; });
+  child.on('close', (code, signal) => { record.closedAt = new Date().toISOString(); record.closeCode = code; record.closeSignal = signal; });
   let connected = false;
-  for (let attempt = 0; attempt < 80; attempt++) {
+  const deadline = Date.now() + startupTimeoutMs;
+  while (Date.now() < deadline) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/version`);
+      const response = await fetch(`http://127.0.0.1:${port}/json/version`, { signal: AbortSignal.timeout(Math.max(1, Math.min(1000, deadline - Date.now()))) });
       if (response.ok) { connected = true; break; }
     } catch { /* The native host is still starting. */ }
-    if (child.exitCode !== null) throw new Error(`Native host exited with ${child.exitCode}`);
-    await new Promise(resolve => setTimeout(resolve, 250));
+    if (record.spawnError) throw new Error(`Native host failed to launch: ${record.spawnError}`);
+    if (child.exitCode !== null || child.signalCode !== null) throw new Error(`Native host exited with code ${child.exitCode}, signal ${child.signalCode}`);
+    await new Promise(resolve => setTimeout(resolve, Math.max(0, Math.min(250, deadline - Date.now()))));
   }
-  if (!connected) throw new Error('WebView2 did not start within 20 seconds.');
-  browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+  if (!connected) { record.phase = 'webview-startup-timeout'; throw new Error(`WebView2 did not start within ${startupTimeoutMs / 1000} seconds.`); }
+  record.phase = 'connecting-cdp';
+  record.connectedAt = new Date().toISOString();
+  browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`, { timeout: startupTimeoutMs });
+  record.phase = 'waiting-for-page';
   let page;
   for (let attempt = 0; attempt < 40; attempt++) {
     page = browser.contexts().flatMap(context => context.pages()).find(tab => tab.url().startsWith('http:'));
@@ -87,6 +131,7 @@ async function launch(args = []) {
   activePage = page;
   page.on('pageerror', error => errors.push(error.message));
   await expect(page.locator('html')).toHaveAttribute('data-ready', 'true', { timeout: 15000 });
+  record.phase = 'ready';
   return page;
 }
 async function delayNextReplacement(page) {
@@ -345,11 +390,17 @@ try {
   await writeFile(join(work, 'results.json'), JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result, null, 2));
 } catch (error) {
-  const diagnostic = await activePage?.evaluate(() => ({ mode: globalThis.NL_MODE, args: globalThis.NL_ARGS, toast: document.querySelector('#toast')?.textContent, globalsInjected: globalThis.NL_GINJECTED })).catch(() => undefined);
+  failed = true;
+  const diagnostic = activePage ? await bounded(activePage.evaluate(() => ({ mode: globalThis.NL_MODE, toast: document.querySelector('#toast')?.textContent, globalsInjected: globalThis.NL_GINJECTED })), 1500) : undefined;
   await writeFile(join(work, 'results.json'), JSON.stringify({ artifact, passed: false, checks, errors, diagnostic, error: error.message }, null, 2));
   throw error;
 } finally {
   await stop();
+  if (failed) {
+    const diagnostic = { startupTimeoutMs, nodeVersion: process.version, launches: launches.map(record => ({ ...record, stdout: redact(record.stdout), stderr: redact(record.stderr) })) };
+    await writeFile(join(work, 'launch-diagnostics.json'), JSON.stringify(diagnostic, null, 2)).catch(() => console.warn('Could not write sanitized launch diagnostics.'));
+    console.log('Native launch diagnostics: test-results/native/launch-diagnostics.json');
+  }
   await chmod(readonly, 0o644).catch(() => {});
   if (storageBackup) for (const entry of storageBackup) {
     if (entry.content === null) await unlink(entry.path).catch(error => { if (error.code !== 'ENOENT') throw error; });

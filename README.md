@@ -17,7 +17,7 @@ Still 使用系统 WebView，不捆绑整套浏览器。无需账户，文档在
 
 发行包及校验值请以[发行页](https://github.com/kyanray-dev/still/releases/latest)实际提供的文件为准，也可按下方步骤自行构建。macOS 请保持系统与 Safari 更新；WebKit 最低要求涉及编辑器使用的[正则表达式支持](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/)。
 
-**当前打包产物未签名，macOS 包未经 Apple 公证，也尚未在 Mac 真机运行验证。** 已在 Windows 运行原生 WebView2 及 Chromium/WebKit 界面测试；macOS 包已检查应用结构与双架构二进制。若系统阻止运行，请先确认下载来源，再使用系统提供的允许方式打开。
+**当前打包产物未签名，macOS 包未经 Apple 公证，也尚未在 Mac 真机运行验证。** 已在 Windows 运行原生 WebView2 及 Chromium/WebKit 界面测试；GitHub macOS 测试机已通过 86 项单元测试、42 项 WebKit 界面测试及构建打包，尚未验证 macOS 原生应用交互。若系统阻止运行，请先确认下载来源，再使用系统提供的允许方式打开。
 
 ## 一张可以直接书写的纸
 
