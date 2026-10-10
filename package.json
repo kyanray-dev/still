@@ -18,7 +18,8 @@
     "native:update": "neu update",
     "native:run": "neu run",
     "build": "npm run build:web && neu build",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "package:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-installer.ps1"
   },
   "dependencies": {
     "@codemirror/commands": "6.11.1",

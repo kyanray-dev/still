@@ -55,6 +55,25 @@ ihdr[9] = 6;
 const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(scanlines)), chunk('IEND', Buffer.alloc(0))]);
 await mkdir(`${root}public`, { recursive: true });
 await writeFile(`${root}public/app-icon.png`, png);
+const iconSize = 256;
+const iconPixels = Buffer.alloc(iconSize * (iconSize * 4 + 1));
+for (let y = 0; y < iconSize; y++) for (let x = 0; x < iconSize; x++) for (let c = 0; c < 4; c++) {
+  let sum = 0;
+  for (let dy = 0; dy < 2; dy++) for (let dx = 0; dx < 2; dx++) sum += scanlines[(y * 2 + dy) * (size * 4 + 1) + (x * 2 + dx) * 4 + c + 1];
+  iconPixels[y * (iconSize * 4 + 1) + x * 4 + c + 1] = Math.round(sum / 4);
+}
+const iconHeader = Buffer.from(ihdr);
+iconHeader.writeUInt32BE(iconSize, 0);
+iconHeader.writeUInt32BE(iconSize, 4);
+const iconPng = Buffer.concat([png.subarray(0, 8), chunk('IHDR', iconHeader), chunk('IDAT', deflateSync(iconPixels)), chunk('IEND', Buffer.alloc(0))]);
+const ico = Buffer.alloc(22);
+ico.writeUInt16LE(1, 2);
+ico.writeUInt16LE(1, 4);
+ico.writeUInt16LE(1, 10);
+ico.writeUInt16LE(32, 12);
+ico.writeUInt32LE(iconPng.length, 14);
+ico.writeUInt32LE(22, 18);
+await writeFile(`${root}public/app-icon.ico`, Buffer.concat([ico, iconPng]));
 const icns = Buffer.alloc(16);
 icns.write('icns', 0);
 icns.writeUInt32BE(png.length + 16, 4);

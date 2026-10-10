@@ -12,6 +12,7 @@ Still uses the system WebView without bundling a browser. No account is required
 
 | Platform | Requirements | Open the app |
 | --- | --- | --- |
+| Windows installer | Windows 10 / 11 x64 | Run `Still-1.2.0-Windows-x64-Setup.exe`; administrator rights are not required |
 | Windows x64 | Windows 10 / 11 and Microsoft Edge WebView2 Runtime | Extract all of `Still-1.2.0-Windows-x64.zip`, open `Still.exe`, and keep `resources.neu` beside it |
 | macOS universal | macOS 13+, Safari / system WebKit 16.4+; Apple Silicon or Intel | Extract `Still-1.2.0-macOS-universal.zip` and move `留白.app` to Applications |
 
@@ -95,6 +96,12 @@ npm run package
 ```
 
 `release/` contains Windows x64 and macOS universal ZIP files and SHA-256 checksums. `bin/`, `dist-web/`, and `dist-native/` are generated directories. Icon sources and generation scripts are included; normal builds need no extra graphics dependencies.
+
+## Windows installer
+
+The installer uses `%LOCALAPPDATA%\Programs\Still`, creates a Start menu shortcut, and registers `.md`, `.markdown`, `.mdown`, and `.mkd` support. Use the finish-page option to open Windows Default Apps and choose Still; existing default choices are preserved. Missing WebView2 is installed online through the bundled, signed Microsoft bootstrapper. Documents and app preferences remain after uninstall. The installer is unsigned. The Inno Setup engine and Microsoft bootstrapper retain their own licenses; original project code remains under 0BSD.
+
+Install Inno Setup 7, run `npm run build` and `npm run package`, then `npm run package:installer`. Set `ISCC` to the compiler executable if needed. Building downloads and verifies the Microsoft bootstrapper signature. `powershell -NoProfile -File scripts/test-installer.ps1` checks real installation, 21 native checks, reinstallation, associations, default preservation, and uninstallation. It refuses to overwrite an existing Still installation or registration. Add `-KeepInstalled` to retain the final installation.
 
 ## Tests
 

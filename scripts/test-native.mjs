@@ -5,7 +5,7 @@ import { once } from 'node:events';
 import { createServer } from 'node:net';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { join, basename, resolve } from 'node:path';
+import { join, basename, resolve, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 
 if (process.platform !== 'win32') {
@@ -14,11 +14,13 @@ if (process.platform !== 'win32') {
 }
 const root = fileURLToPath(new URL('../', import.meta.url));
 const work = join(root, 'test-results', 'native');
+const nativeExecutable = process.env.STILL_NATIVE_EXECUTABLE || join(root, 'dist-native', 'liubai', 'liubai-win_x64.exe');
+const nativeDirectory = dirname(nativeExecutable);
 const buildConfig = JSON.parse(await readFile(join(root, 'neutralino.config.json'), 'utf8'));
 const artifact = {
   version: buildConfig.version,
-  resourcesSha256: createHash('sha256').update(await readFile(join(root, 'dist-native', 'liubai', 'resources.neu'))).digest('hex'),
-  executableSha256: createHash('sha256').update(await readFile(join(root, 'dist-native', 'liubai', 'liubai-win_x64.exe'))).digest('hex'),
+  resourcesSha256: createHash('sha256').update(await readFile(join(nativeDirectory, 'resources.neu'))).digest('hex'),
+  executableSha256: createHash('sha256').update(await readFile(nativeExecutable)).digest('hex'),
 };
 await mkdir(join(work, '图片'), { recursive: true });
 const filename = join(work, '原生 测试.md');
@@ -90,10 +92,10 @@ async function launch(args = []) {
   const record = { attempt: launches.length + 1, startedAt: new Date().toISOString(), port, startupTimeoutMs, phase: 'starting', stdout: '', stderr: '', stdoutTruncated: false, stderrTruncated: false };
   launches.push(record);
   activeLaunch = record;
-  child = spawn(join(root, 'dist-native', 'liubai', 'liubai-win_x64.exe'), [
+  child = spawn(nativeExecutable, [
     '--window-hidden=true', '--window-use-saved-state=false', '--window-width=1180', '--window-height=820', ...args,
   ], {
-    cwd: join(root, 'dist-native', 'liubai'),
+    cwd: nativeDirectory,
     windowsHide: true,
     env: {
       ...process.env,

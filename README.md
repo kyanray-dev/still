@@ -12,12 +12,19 @@ Still 使用系统 WebView，不捆绑整套浏览器。无需账户，文档在
 
 | 平台 | 系统要求 | 打开方式 |
 | --- | --- | --- |
+| Windows 安装版 | Windows 10 / 11 x64 | 运行 `Still-1.2.0-Windows-x64-Setup.exe`，无需管理员权限 |
 | Windows x64 | Windows 10 / 11，Microsoft Edge WebView2 Runtime | 完整解压 `Still-1.2.0-Windows-x64.zip`，打开 `Still.exe`，保留同目录的 `resources.neu` |
 | macOS universal | macOS 13+，Safari / 系统 WebKit 16.4+；Apple Silicon 或 Intel | 解压 `Still-1.2.0-macOS-universal.zip`，将 `留白.app` 拖入「应用程序」 |
 
 发行包及校验值请以[发行页](https://github.com/kyanray-dev/still/releases/latest)实际提供的文件为准，也可按下方步骤自行构建。macOS 请保持系统与 Safari 更新；WebKit 最低要求涉及编辑器使用的[正则表达式支持](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/)。
 
 **当前打包产物未签名，macOS 包未经 Apple 公证，也尚未在 Mac 真机运行验证。** 已在 Windows 运行原生 WebView2 及 Chromium/WebKit 界面测试；GitHub macOS 测试机已通过 86 项单元测试、42 项 WebKit 界面测试及构建打包，尚未验证 macOS 原生应用交互。若系统阻止运行，请先确认下载来源，再使用系统提供的允许方式打开。
+
+### Windows 安装与默认打开
+
+安装版默认放在 `%LOCALAPPDATA%\Programs\Still`，创建开始菜单快捷方式，并注册 `.md`、`.markdown`、`.mdown`、`.mkd` 的打开能力。安装完成页勾选「选择默认 Markdown 打开程序」，在 Windows 设置中选择 Still；也可右键文档 →「打开方式」→ Still →「始终」。安装程序保留原有默认选择。
+
+若缺少 WebView2，安装程序会启动随包的微软官方引导程序，联网安装运行时；下载失败时会提示手动安装。可在 Windows「已安装的应用」中卸载 Still，文档和应用偏好保留。安装器使用 [Inno Setup](https://jrsoftware.org/)，安装引擎及 WebView2 引导程序保留各自许可，原创项目代码继续采用 0BSD。安装包目前未签名。
 
 ## 一张可以直接书写的纸
 
@@ -97,6 +104,10 @@ npm run package
 `release/` 输出 Windows x64、macOS universal ZIP 与 SHA-256 校验值。`bin/`、`dist-web/`、`dist-native/` 是生成目录。源码包含图标与生成脚本，常规构建无需额外图形依赖。
 
 ## 测试
+
+构建 Windows 安装包：安装 Inno Setup 7，完成 `npm run build` 与 `npm run package` 后运行 `npm run package:installer`。编译器不在默认位置时设置环境变量 `ISCC` 为 `ISCC.exe` 的完整路径；构建需要下载并验证微软 WebView2 引导程序的数字签名。
+
+`powershell -NoProfile -File scripts/test-installer.ps1` 会实际安装、运行 21 项原生检查、重装、卸载并核对关联及默认设置。已有 Still 安装或注册时，测试拒绝覆盖；默认测试结束后卸载，`-KeepInstalled` 可保留最终安装。
 
 ```sh
 npm test
