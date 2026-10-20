@@ -17,7 +17,7 @@ const cache = join(root, '.build-cache', 'neutralino-macos');
 const source = join(cache, 'source');
 const build = join(cache, 'cmake-build');
 const marker = join(cache, 'runtime.json');
-const patches = ['neutralino-null-protocol.patch', 'neutralino-cocoa-points.patch', 'neutralino-intel-rect-abi.patch'].map(name => join(root, 'installer', 'macos', name));
+const patches = ['neutralino-null-protocol.patch', 'neutralino-cocoa-points.patch', 'neutralino-intel-rect-abi.patch', 'neutralino-open-files.patch'].map(name => join(root, 'installer', 'macos', name));
 const repository = 'https://github.com/neutralinojs/neutralinojs.git';
 const commit = '4361b63eb1157fc7dedb29b92815a08ec0002767';
 const minimumSystemVersion = '14.0';
@@ -86,7 +86,7 @@ if (head.trim() !== commit) throw new Error('The Neutralino source does not matc
 for (const patch of patches) {
   try {
     await run('git', ['-C', source, 'apply', '--reverse', '--check', patch]);
-    console.log('The macOS protocol patch is already applied.');
+    console.log(`The macOS patch is already applied: ${patch.split('/').pop()}`);
   } catch {
     await execute('git', ['-C', source, 'apply', '--check', patch]);
     await execute('git', ['-C', source, 'apply', patch]);

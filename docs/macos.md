@@ -19,6 +19,16 @@
 
 还修复 Intel 的 `CGRect` 结构体返回值调用约定：x86_64 使用 `objc_msgSend_stret`，arm64 保留 `objc_msgSend`，防止退出时保存窗口位置或截取窗口时崩溃。补丁：[neutralino-intel-rect-abi.patch](../installer/macos/neutralino-intel-rect-abi.patch)。非 UI 回归检查实际返回的矩形坐标与尺寸。
 
+## Finder 打开 Markdown 文档
+
+2026-10-20 补齐文件关联支持。安装包现在在 Info.plist 声明 Markdown（`.md`、`.markdown`、`.mdown`、`.mkd`）的 Editor 角色及导入 UTI，并声明可编辑纯文本。处理优先级为 Alternate；安装本身不会把所有纯文本默认应用改成留白。
+
+原生补丁 [neutralino-open-files.patch](../installer/macos/neutralino-open-files.patch) 接收 AppKit 的 `application:openFiles:` 请求。首次启动时先缓存文件路径，前端安装 `filesOpened` 监听器后通过 `stillOpenFilesReady` 握手按顺序接收；已启动时直接在当前窗口打开，保留已有文档和草稿。不能只修改默认关联：缺少类型声明时系统拒绝打开，缺少原生事件处理时文件路径不会传入编辑器。
+
+前端回归见 `tests/native-open.test.ts`；安装包回归校验实际 plist 的扩展名、角色和 UTI。实际验证需分别覆盖退出后打开文件、已启动时继续打开、同时打开多个文件及中文和空格路径。
+
+本次本机验证：93 项单元测试、安装包/签名校验与原生协议/矩形 ABI 检查通过；四个原生补丁可从固定上游源码重新应用，结果与编译源码一致。在 Apple M1 上通过系统默认关联实际验证冷启动 `.md`、运行中 `.markdown`、一次打开多个文件及中文/空格/特殊字符文件名，并成功重新打开先前报错的原文档；SHA-256 确认原文档和测试文档内容均未改动。
+
 ## 可复现构建
 
 需要 Node.js、Git、CMake 3.16+ 与 Xcode Command Line Tools，在 macOS 执行：

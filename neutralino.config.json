@@ -17,6 +17,7 @@
   "logging": { "enabled": false, "writeToLogFile": false },
   "nativeAllowList": [
     "app.exit",
+    "events.broadcast",
     "os.showOpenDialog",
     "os.showSaveDialog",
     "os.open",

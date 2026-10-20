@@ -1,0 +1,128 @@
+diff --git a/lib/webview/webview.h b/lib/webview/webview.h
+--- a/lib/webview/webview.h
++++ b/lib/webview/webview.h
+@@ -76,6 +76,7 @@
+ static eventHandler_t windowStateChange;
+ static newWindowHandler_t handleNewWindow;
+ static fileDropHandler_t filesDropped;
++static fileDropHandler_t filesOpened;
+ static int processExitCode = 0;
+ 
+ struct WindowMenuItem {
+@@ -556,6 +557,21 @@
+                             windowStateChange(WEBVIEW_WINDOW_ACTIVATE);
+                         return YES;
+                     }), "c@:@c");
++    // Finder delivers file opens as Apple events, including on first launch.
++    class_addMethod(cls, "application:openFiles:"_sel,
++      (IMP)(+[](id, SEL, id app, id filenames) -> void {
++        std::vector<std::string> paths;
++        auto count = ((unsigned long(*)(id, SEL))objc_msgSend)(filenames, "count"_sel);
++        for (unsigned long i = 0; i < count; ++i) {
++          id name = ((id(*)(id, SEL, unsigned long))objc_msgSend)(
++              filenames, "objectAtIndex:"_sel, i);
++          const char *path = ((const char*(*)(id, SEL))objc_msgSend)(name, "UTF8String"_sel);
++          if (path) paths.emplace_back(path);
++        }
++        if (filesOpened && !paths.empty()) filesOpened(paths);
++        ((void(*)(id, SEL, unsigned long))objc_msgSend)(
++            app, "replyToOpenOrPrint:"_sel, 0); // NSApplicationDelegateReplySuccess
++      }), "v@:@@");
+     class_addMethod(cls, "menuCallback:"_sel,
+       (IMP)(+[](id, SEL, id sender) -> void { 
+       WindowMenuItem *m = ((WindowMenuItem *(*)(id, SEL))objc_msgSend)(
+@@ -1567,6 +1583,10 @@
+     handleNewWindow = handler;
+   }
+ 
++  void setFileOpenHandler(fileDropHandler_t handler) {
++    filesOpened = handler;
++  }
++
+   void setFileDropHandler(fileDropHandler_t handler) {
+     filesDropped = handler;
+   }
+diff --git a/api/window/window.h b/api/window/window.h
+--- a/api/window/window.h
++++ b/api/window/window.h
+@@ -108,6 +108,10 @@
+ 
+ } // namespace handlers
+ 
++#if defined(__APPLE__)
++void enableFileOpenEvents();
++#endif
++
+ bool isSavedStateLoaded();
+ bool isMaximized();
+ void maximize();
+diff --git a/api/window/window.cpp b/api/window/window.cpp
+--- a/api/window/window.cpp
++++ b/api/window/window.cpp
+@@ -90,6 +90,22 @@
+ window::WindowOptions windowProps;
+ bool savedState = false;
+ NEU_W_HANDLE windowHandle;
++
++#if defined(__APPLE__)
++// Both the application delegate and the ready handshake run on the main queue.
++// Retain first-launch Apple events until the frontend has installed its listener.
++vector<string> pendingOpenFiles;
++bool fileOpenEventsReady = false;
++
++void enableFileOpenEvents() {
++    fileOpenEventsReady = true;
++    if(!pendingOpenFiles.empty()) {
++        vector<string> paths;
++        paths.swap(pendingOpenFiles);
++        events::dispatch("filesOpened", paths);
++    }
++}
++#endif
+ 
+ namespace handlers {
+ 
+@@ -677,6 +693,14 @@
+         events::dispatch("filesDropped", droppedPaths);
+     });
+ 
++    #if defined(__APPLE__)
++    nativeWindow->setFileOpenHandler([](const vector<string>& paths) {
++        if(fileOpenEventsReady) events::dispatch("filesOpened", paths);
++        else pendingOpenFiles.insert(pendingOpenFiles.end(), paths.begin(), paths.end());
++        window::focus();
++    });
++    #endif
++
+     if(windowProps.injectGlobals) 
+         nativeWindow->init(settings::getGlobalVars() + "var NL_GINJECTED = true;");
+ 
+diff --git a/api/events/events.cpp b/api/events/events.cpp
+--- a/api/events/events.cpp
++++ b/api/events/events.cpp
+@@ -1,6 +1,11 @@
+ #include <string>
+ 
+ #include "server/neuserver.h"
++#if defined(__APPLE__)
++#include <dispatch/dispatch.h>
++#include "api/window/window.h"
++#include "settings.h"
++#endif
+ #include "lib/json/json.hpp"
+ #include "helpers.h"
+ #include "errors.h"
+@@ -48,6 +53,13 @@
+         data = input["data"];
+     }
+ 
++    #if defined(__APPLE__)
++    if(event == "stillOpenFilesReady" && settings::getMode() == settings::AppModeWindow) {
++        dispatch_sync(dispatch_get_main_queue(), ^{
++            window::enableFileOpenEvents();
++        });
++    }
++    #endif
+     events::dispatch(event, data);
+     output["success"] = true;
+     return output;

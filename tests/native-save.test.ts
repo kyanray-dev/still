@@ -27,7 +27,10 @@ const fs = {
 };
 vi.doMock('@neutralinojs/lib', () => ({
   init: () => handlers.get('ready')?.(),
-  events: { on: async (name: string, handler: (event?: CustomEvent) => unknown) => { handlers.set(name, handler); } },
+  events: {
+    on: async (name: string, handler: (event?: CustomEvent) => unknown) => { handlers.set(name, handler); },
+    broadcast: async () => {},
+  },
   os: { showSaveDialog: saveDialog },
   app: { exit },
   window: { setMainMenu },

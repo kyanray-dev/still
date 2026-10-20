@@ -67,11 +67,18 @@ export async function initPlatform(handlers: PlatformCallbacks): Promise<void> {
     }
     if (documents.length) await handlers.onFiles(documents);
   };
-  await native.events.on('filesDropped', (event: CustomEvent) => {
+  // Serialize OS file requests so a second Finder open cannot overtake the first.
+  let openQueue = Promise.resolve();
+  const handleFilePaths = (event: CustomEvent) => {
     const detail = event.detail;
     const paths = Array.isArray(detail) ? detail : detail?.files;
-    if (Array.isArray(paths)) void openPaths(paths.filter((path): path is string => typeof path === 'string'));
-  });
+    if (!Array.isArray(paths)) return;
+    const filenames = paths.filter((path): path is string => typeof path === 'string');
+    openQueue = openQueue.then(() => openPaths(filenames)).catch(error => handlers.onError(errorMessage(error)));
+    return openQueue;
+  };
+  await native.events.on('filesDropped', handleFilePaths);
+  await native.events.on('filesOpened', handleFilePaths);
   await native.events.on('newWindowRequest', (event: CustomEvent) => {
     const url = typeof event.detail === 'string' ? event.detail : event.detail?.url;
     if (typeof url === 'string') void openExternal(url).catch(error => handlers.onError(errorMessage(error)));
@@ -107,6 +114,9 @@ export async function initPlatform(handlers: PlatformCallbacks): Promise<void> {
   }
   const args = (globals.NL_ARGS ?? []).slice(1).filter(arg => !arg.startsWith('--') && DOCUMENT_EXTENSION.test(arg));
   if (args.length) await openPaths(args);
+  // Register before asking native code to flush Apple events from cold launch.
+  if (globals.NL_OS === 'Darwin') await native.events.broadcast('stillOpenFilesReady');
+  await openQueue;
 }
 
 function checkDocument(name: string, size: number): void {
