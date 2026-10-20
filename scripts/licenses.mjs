@@ -17,5 +17,5 @@ for (const [path, entry] of Object.entries(lock.packages)) {
     notices.push(`${pkg.name} ${pkg.version} — ${typeof pkg.license === 'string' ? pkg.license : entry.license || 'See included license'}`);
   } catch { /* Optional dependencies may be absent on this platform. */ }
 }
-notices.push('', 'Neutralinojs native framework 6.10.0 — MIT', 'https://github.com/neutralinojs/neutralinojs', 'See licenses/neutralinojs-native-LICENSE.txt', '');
+notices.push('', 'Neutralinojs native framework 6.10.0 — MIT', 'macOS builds include null Objective-C protocol guards, Cocoa coordinate fixes, and Intel CGRect ABI corrections; patches and pinned source commit are in installer/macos/ and docs/macos.md.', 'https://github.com/neutralinojs/neutralinojs', 'See licenses/neutralinojs-native-LICENSE.txt', '');
 await writeFile(join(root, 'THIRD-PARTY-NOTICES.txt'), notices.join('\n'));

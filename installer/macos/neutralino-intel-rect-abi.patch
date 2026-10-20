@@ -1,0 +1,29 @@
+diff --git a/api/window/window.cpp b/api/window/window.cpp
+--- a/api/window/window.cpp
++++ b/api/window/window.cpp
+@@ -208,7 +208,13 @@
+ 
+ #if defined(__APPLE__)
+ CGRect __getWindowRect() {
++    // CGRect is returned indirectly on Intel. Its messenger takes the return
++    // buffer before self/selector; arm64 uses objc_msgSend for both forms.
++    #if defined(__x86_64__)
++    CGRect winPos = ((CGRect (*)(id, SEL))objc_msgSend_stret)(
++    #else
+     CGRect winPos = ((CGRect (*)(id, SEL))objc_msgSend)(
++    #endif
+         (id) windowHandle, "frame"_sel);
+     return winPos;
+ }
+@@ -1263,7 +1269,11 @@
+     #elif defined(__APPLE__)
+     CGRect frameRect = __getWindowRect();
+     CGRect clientRect =
++            #if defined(__x86_64__)
++            ((CGRect (*)(id, SEL, CGRect))objc_msgSend_stret)(windowHandle, "contentRectForFrameRect:"_sel, frameRect);
++            #else
+             ((CGRect (*)(id, SEL, CGRect))objc_msgSend)(windowHandle, "contentRectForFrameRect:"_sel, frameRect);
++            #endif
+     clientRect.origin.y +=  frameRect.size.height - clientRect.size.height;
+ 
+     long winId = ((long(*)(id, SEL))objc_msgSend)(windowHandle, "windowNumber"_sel);

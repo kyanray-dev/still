@@ -1,0 +1,56 @@
+diff --git a/lib/tray/tray.h b/lib/tray/tray.h
+index 813be80..0467efd 100644
+--- a/lib/tray/tray.h
++++ b/lib/tray/tray.h
+@@ -258,7 +258,10 @@ static int tray_init(struct tray *tray) {
+   Class trayDelegateClass = (Class)objc_getClass("Tray");
+   if (!trayDelegateClass) {
+     trayDelegateClass = objc_allocateClassPair(objc_getClass("NSObject"), "Tray", 0);
+-    class_addProtocol(trayDelegateClass, objc_getProtocol("NSApplicationDelegate"));
++    Protocol *applicationDelegateProtocol = objc_getProtocol("NSApplicationDelegate");
++    if (applicationDelegateProtocol) {
++      class_addProtocol(trayDelegateClass, applicationDelegateProtocol);
++    }
+     class_addMethod(trayDelegateClass, sel_registerName("menuCallback:"), (IMP)menu_callback, "v@:@");
+     objc_registerClassPair(trayDelegateClass);
+   }
+diff --git a/lib/webview/webview.h b/lib/webview/webview.h
+index 0d95254..5246aad 100755
+--- a/lib/webview/webview.h
++++ b/lib/webview/webview.h
+@@ -539,8 +539,15 @@ public:
+     // Delegate
+     auto cls =
+         objc_allocateClassPair((Class) "NSResponder"_cls, "AppDelegate", 0);
+-    class_addProtocol(cls, objc_getProtocol("NSTouchBarProvider"));
+-    class_addProtocol(cls, objc_getProtocol("NSApplicationDelegate"));
++    // objc_getProtocol can return nullptr for SDK protocols that have not been
++    // loaded. Passing nullptr to class_addProtocol corrupts the class protocol
++    // list on macOS 15 and later crashes during conformsToProtocol: checks.
++    if (auto protocol = objc_getProtocol("NSTouchBarProvider")) {
++      class_addProtocol(cls, protocol);
++    }
++    if (auto protocol = objc_getProtocol("NSApplicationDelegate")) {
++      class_addProtocol(cls, protocol);
++    }
+     class_addMethod(cls, "applicationShouldTerminateAfterLastWindowClosed:"_sel,
+                     (IMP)(+[](id, SEL, id) -> BOOL { return 0; }), "c@:@");
+     class_addMethod(cls, "applicationShouldHandleReopen:hasVisibleWindows:"_sel,
+@@ -751,7 +758,9 @@ public:
+                                           nullptr);
+ 
+     auto navcls = objc_allocateClassPair("NSResponder"_cls, "WebViewNavDelegate", 0);
+-    class_addProtocol(navcls, objc_getProtocol("WKNavigationDelegate"));
++    if (auto protocol = objc_getProtocol("WKNavigationDelegate")) {
++      class_addProtocol(navcls, protocol);
++    }
+     class_addMethod(
+         navcls,
+         "webView:decidePolicyForNavigationAction:decisionHandler:"_sel,
+@@ -1572,4 +1581,4 @@ public:
+ 
+ #endif /* WEBVIEW_HEADER */
+ 
+-#endif /* WEBVIEW_H */
+\ No newline at end of file
++#endif /* WEBVIEW_H */

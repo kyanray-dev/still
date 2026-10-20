@@ -68,5 +68,6 @@ uc.micro 3.0.0 — MIT
 w3c-keyname 2.2.8 — MIT
 
 Neutralinojs native framework 6.10.0 — MIT
+macOS builds include null Objective-C protocol guards, Cocoa coordinate fixes, and Intel CGRect ABI corrections; patches and pinned source commit are in installer/macos/ and docs/macos.md.
 https://github.com/neutralinojs/neutralinojs
 See licenses/neutralinojs-native-LICENSE.txt

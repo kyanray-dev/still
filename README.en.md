@@ -6,7 +6,7 @@ A quiet, lightweight Markdown editor and reader. Write directly in the formatted
 
 ![Direct document editing in Still](docs/images/wysiwyg-light.png)
 
-Still uses the system WebView without bundling a browser. No account is required. Documents are processed locally and the app does not upload their contents. Current version: **1.2.0**. The interface currently uses Chinese labels.
+Still uses the system WebView without bundling a browser. No account is required. Documents are processed locally and the app does not upload their contents. Current version: **1.2.1**. The interface currently uses Chinese labels.
 
 ## Get started
 
@@ -14,11 +14,13 @@ Still uses the system WebView without bundling a browser. No account is required
 | --- | --- | --- |
 | Windows installer | Windows 10 / 11 x64 | Run `Still-1.2.0-Windows-x64-Setup.exe`; administrator rights are not required |
 | Windows x64 | Windows 10 / 11 and Microsoft Edge WebView2 Runtime | Extract all of `Still-1.2.0-Windows-x64.zip`, open `Still.exe`, and keep `resources.neu` beside it |
-| macOS universal | macOS 13+, Safari / system WebKit 16.4+; Apple Silicon or Intel | Extract `Still-1.2.0-macOS-universal.zip` and move `留白.app` to Applications |
+| macOS universal | macOS 14+; Apple Silicon or Intel | Open `Still-1.2.1-macOS-universal.dmg` and drag `留白.app` to Applications; ZIP is also available |
 
 Check the [release page](https://github.com/kyanray-dev/still/releases/latest) for available packages and checksums, or build from source below. Keep macOS and Safari updated; the minimum WebKit version is needed for [regular expression support](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/) used by the editor.
 
-**Current packages are unsigned. The macOS package is not notarized and has not been tested on a physical Mac.** Native WebView2 and Chromium/WebKit interface tests have run on Windows. A GitHub macOS runner passed 86 unit tests, 42 WebKit interface tests, and build/packaging checks; native macOS application interactions remain unverified. If your system blocks launch, verify the download's origin before using the system's option to allow it.
+**Windows packages are unsigned. macOS 1.2.1 uses an ad-hoc signature over the complete app bundle and is not Apple-notarized.** Signature integrity does not establish Gatekeeper trust. After checking the source and SHA-256, use System Settings → Privacy & Security → Open Anyway if the initial launch is blocked.
+
+macOS 1.2.1 guards null Objective-C protocols in the native runtime, fixing a crash during Touch Bar protocol checks. The previous binary required macOS 14 despite advertising 13; the package now declares the correct minimum. The patch and reproducible build instructions are included; see [macOS build and verification](docs/macos.md).
 
 ## Write on the page
 
@@ -95,7 +97,7 @@ npm run build
 npm run package
 ```
 
-`release/` contains Windows x64 and macOS universal ZIP files and SHA-256 checksums. `bin/`, `dist-web/`, and `dist-native/` are generated directories. Icon sources and generation scripts are included; normal builds need no extra graphics dependencies.
+On macOS, the build downloads a pinned Neutralino 6.10.0 source commit, applies the null-protocol fix, and builds both architectures using Xcode Command Line Tools and CMake. `release/` contains a universal DMG, ZIP, and `SHA256SUMS-macOS.txt`. On other platforms packaging produces the Windows ZIP and `SHA256SUMS.txt`. macOS signing and packaging require a Mac. `bin/`, `dist-web/`, and `dist-native/` are generated directories. Icon sources and generation scripts are included; normal builds need no extra graphics dependencies.
 
 ## Windows installer
 
@@ -119,7 +121,7 @@ After building, run the native integration tests on Windows:
 node scripts/test-native.mjs
 ```
 
-These tests launch real, hidden desktop windows and verify the UI and file saving through WebView2. Native file drops use simulated framework events, and text composition uses automated events. System IMEs, file-picker gestures, print dialogs, and physical Mac interactions are outside the completed automated validation. Tests use a dedicated data directory and restore earlier settings and recent files afterward.
+These tests launch real, hidden desktop windows and verify the UI and file saving through WebView2. Native file drops use simulated framework events, and text composition uses automated events. System IMEs, file-picker gestures, and print dialogs are outside this Windows automated validation. macOS native interaction checks are recorded separately in [macOS build and verification](docs/macos.md). Tests use a dedicated data directory and restore earlier settings and recent files afterward.
 
 The [build workflow](.github/workflows/build.yml) defines Windows/macOS builds and tests. Check the repository's Actions history for remote execution results.
 

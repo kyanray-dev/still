@@ -5,3 +5,5 @@
 *.woff2 binary
 *.zip binary
 *.exe binary
+# Patch context preserves whitespace from the pinned upstream source.
+installer/macos/*.patch -whitespace
