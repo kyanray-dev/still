@@ -1,6 +1,6 @@
 {
   "name": "still-markdown",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "license": "0BSD",
   "engines": { "node": "^22.22.2 || ^24.15.0 || >=26.0.0" },
@@ -17,8 +17,11 @@
     "test:e2e": "playwright test",
     "native:update": "neu update",
     "native:run": "neu run",
-    "build": "npm run build:web && neu build",
+    "build": "npm run build:web && node scripts/build-macos-runtime.mjs && neu build",
     "package": "node scripts/package.mjs",
+    "package:mac": "node scripts/package-macos.mjs",
+    "test:mac-package": "node scripts/test-macos-package.mjs",
+    "test:mac-protocol": "node scripts/test-macos-protocol.mjs",
     "package:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-installer.ps1"
   },
   "dependencies": {

@@ -77,7 +77,7 @@ export async function initPlatform(handlers: PlatformCallbacks): Promise<void> {
     if (typeof url === 'string') void openExternal(url).catch(error => handlers.onError(errorMessage(error)));
   });
   let closing = false;
-  await native.events.on('windowClose', async () => {
+  const requestClose = async () => {
     if (closing) return;
     closing = true;
     try {
@@ -85,7 +85,26 @@ export async function initPlatform(handlers: PlatformCallbacks): Promise<void> {
       if (mayClose) await native.app.exit();
     } catch (error) { handlers.onError(errorMessage(error)); }
     finally { closing = false; }
-  });
+  };
+  await native.events.on('windowClose', requestClose);
+  if (globals.NL_OS === 'Darwin') {
+    await native.events.on('mainMenuItemClicked', (event: CustomEvent) => {
+      if (event.detail?.id === 'quit') return requestClose();
+    });
+    await native.window.setMainMenu([
+      { text: '留白', menuItems: [
+        { text: '隐藏留白', action: 'hide:', shortcut: 'h' },
+        { text: '-' },
+        { id: 'quit', text: '退出留白', action: 'menuCallback:', shortcut: 'q' },
+      ] },
+      { text: '编辑', menuItems: [
+        { text: '剪切', action: 'cut:', shortcut: 'x' },
+        { text: '拷贝', action: 'copy:', shortcut: 'c' },
+        { text: '粘贴', action: 'paste:', shortcut: 'v' },
+        { text: '全选', action: 'selectAll:', shortcut: 'a' },
+      ] },
+    ]);
+  }
   const args = (globals.NL_ARGS ?? []).slice(1).filter(arg => !arg.startsWith('--') && DOCUMENT_EXTENSION.test(arg));
   if (args.length) await openPaths(args);
 }

@@ -37,17 +37,24 @@ jobs:
         env:
           PLAYWRIGHT_BROWSER: ${{ runner.os == 'macOS' && 'webkit' || 'chromium' }}
       - run: npm run native:update
+      - run: npm run test:mac-protocol
+        if: runner.os == 'macOS'
       - run: npm run build
       - run: node scripts/test-native.mjs
         if: runner.os == 'Windows'
       - run: npm run package
+      - run: npm run test:mac-package
+        if: runner.os == 'macOS'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: still-${{ matrix.os }}
           path: |
             release/*.zip
-            release/SHA256SUMS.txt
+            release/*.dmg
+            release/SHA256SUMS*.txt
             test-results/*/report/
             test-results/native/results.json
             test-results/native/launch-diagnostics.json
+            test-results/macos-package/results.json
+            test-results/macos-protocol/results.json

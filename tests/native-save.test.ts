@@ -4,6 +4,7 @@ const files = new Map<string, Uint8Array>();
 const handlers = new Map<string, (event?: CustomEvent) => unknown>();
 const saveDialog = vi.fn();
 const exit = vi.fn();
+const setMainMenu = vi.fn(async () => {});
 const encode = (text: string) => new TextEncoder().encode(text);
 const textAt = (path: string) => new TextDecoder().decode(files.get(path));
 const missing = () => ({ code: 'NE_FS_NOPATHE', message: 'Missing file' });
@@ -29,6 +30,7 @@ vi.doMock('@neutralinojs/lib', () => ({
   events: { on: async (name: string, handler: (event?: CustomEvent) => unknown) => { handlers.set(name, handler); } },
   os: { showSaveDialog: saveDialog },
   app: { exit },
+  window: { setMainMenu },
   filesystem: fs,
 }));
 const path = 'E:/notes/中文.md';
@@ -159,6 +161,43 @@ describe('safe native Markdown saving', () => {
 });
 
 describe('native window close guard', () => {
+  it('installs macOS editing shortcuts and guards menu quit with the same close decision', async () => {
+    vi.stubGlobal('NL_OS', 'Darwin');
+    let release!: (value: boolean) => void;
+    const onClose = vi.fn(() => new Promise<boolean>(resolve => { release = resolve; }));
+    const onError = vi.fn();
+    const { initPlatform } = await import('../src/platform');
+    await initPlatform({ onFiles: () => {}, onError, onClose });
+    expect(setMainMenu).toHaveBeenCalledOnce();
+    expect(setMainMenu).toHaveBeenCalledWith([
+      { text: '留白', menuItems: [
+        { text: '隐藏留白', action: 'hide:', shortcut: 'h' },
+        { text: '-' },
+        { id: 'quit', text: '退出留白', action: 'menuCallback:', shortcut: 'q' },
+      ] },
+      { text: '编辑', menuItems: [
+        { text: '剪切', action: 'cut:', shortcut: 'x' },
+        { text: '拷贝', action: 'copy:', shortcut: 'c' },
+        { text: '粘贴', action: 'paste:', shortcut: 'v' },
+        { text: '全选', action: 'selectAll:', shortcut: 'a' },
+      ] },
+    ]);
+    await handlers.get('mainMenuItemClicked')?.(new CustomEvent('mainMenuItemClicked', { detail: { id: 'other' } }));
+    expect(onClose).not.toHaveBeenCalled();
+    const first = handlers.get('mainMenuItemClicked')?.(new CustomEvent('mainMenuItemClicked', { detail: { id: 'quit' } }));
+    await handlers.get('windowClose')?.();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(exit).not.toHaveBeenCalled();
+    release(false);
+    await first;
+    expect(exit).not.toHaveBeenCalled();
+    const second = handlers.get('mainMenuItemClicked')?.(new CustomEvent('mainMenuItemClicked', { detail: { id: 'quit' } }));
+    release(true);
+    await second;
+    expect(onClose).toHaveBeenCalledTimes(2);
+    expect(exit).toHaveBeenCalledOnce();
+    expect(onError).not.toHaveBeenCalled();
+  });
   it('serializes repeated close requests and exits only after approval', async () => {
     let release!: (value: boolean) => void;
     const onClose = vi.fn(() => new Promise<boolean>(resolve => { release = resolve; }));

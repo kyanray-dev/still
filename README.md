@@ -6,7 +6,7 @@
 
 ![Still 的正文编辑界面](docs/images/wysiwyg-light.png)
 
-Still 使用系统 WebView，不捆绑整套浏览器。无需账户，文档在本机处理；应用不上传文档内容。当前版本为 **1.2.0**。
+Still 使用系统 WebView，不捆绑整套浏览器。无需账户，文档在本机处理；应用不上传文档内容。当前版本为 **1.2.1**。
 
 ## 使用
 
@@ -14,11 +14,13 @@ Still 使用系统 WebView，不捆绑整套浏览器。无需账户，文档在
 | --- | --- | --- |
 | Windows 安装版 | Windows 10 / 11 x64 | 运行 `Still-1.2.0-Windows-x64-Setup.exe`，无需管理员权限 |
 | Windows x64 | Windows 10 / 11，Microsoft Edge WebView2 Runtime | 完整解压 `Still-1.2.0-Windows-x64.zip`，打开 `Still.exe`，保留同目录的 `resources.neu` |
-| macOS universal | macOS 13+，Safari / 系统 WebKit 16.4+；Apple Silicon 或 Intel | 解压 `Still-1.2.0-macOS-universal.zip`，将 `留白.app` 拖入「应用程序」 |
+| macOS universal | macOS 14+；Apple Silicon 或 Intel | 打开 `Still-1.2.1-macOS-universal.dmg`，将 `留白.app` 拖入 Applications；也提供 ZIP |
 
 发行包及校验值请以[发行页](https://github.com/kyanray-dev/still/releases/latest)实际提供的文件为准，也可按下方步骤自行构建。macOS 请保持系统与 Safari 更新；WebKit 最低要求涉及编辑器使用的[正则表达式支持](https://webkit.org/blog/13966/webkit-features-in-safari-16-4/)。
 
-**当前打包产物未签名，macOS 包未经 Apple 公证，也尚未在 Mac 真机运行验证。** 已在 Windows 运行原生 WebView2 及 Chromium/WebKit 界面测试；GitHub macOS 测试机已通过 86 项单元测试、42 项 WebKit 界面测试及构建打包，尚未验证 macOS 原生应用交互。若系统阻止运行，请先确认下载来源，再使用系统提供的允许方式打开。
+**Windows 包未签名；macOS 1.2.1 默认使用完整应用临时签名（ad-hoc），未经 Apple 公证。** 签名完整性通过不等于 Gatekeeper 信任通过。确认来源与 SHA-256 后，首次打开若被阻止，请使用「系统设置 → 隐私与安全性 → 仍要打开」。不需要关闭系统安全保护。
+
+macOS 1.2.1 修复了原生运行时向 Objective-C 类注册空协议、继而在 Touch Bar 协议检查时崩溃的问题。原包二进制实际要求 macOS 14，现已同步修正安装包的系统要求。原生补丁与可复现构建步骤随源码提供，详见 [macOS 构建与验证](docs/macos.md)。
 
 ### Windows 安装与默认打开
 
@@ -101,7 +103,7 @@ npm run build
 npm run package
 ```
 
-`release/` 输出 Windows x64、macOS universal ZIP 与 SHA-256 校验值。`bin/`、`dist-web/`、`dist-native/` 是生成目录。源码包含图标与生成脚本，常规构建无需额外图形依赖。
+在 macOS 上，构建会下载固定提交的 Neutralino 6.10.0 源码，应用空协议修复，使用 Xcode Command Line Tools 与 CMake 重编两种架构。`release/` 输出 macOS universal DMG、ZIP 与 `SHA256SUMS-macOS.txt`；其他平台的打包步骤输出 Windows ZIP 与 `SHA256SUMS.txt`。mac 包必须在 Mac 上完成签名封装。`bin/`、`dist-web/`、`dist-native/` 是生成目录。源码包含图标与生成脚本，常规构建无需额外图形依赖。
 
 ## 测试
 
@@ -123,7 +125,7 @@ Windows 本地默认使用已安装的 Edge；设置 `PLAYWRIGHT_CHANNEL=chromiu
 node scripts/test-native.mjs
 ```
 
-测试启动真实的隐藏桌面窗口，通过 WebView2 验证界面和文件保存。原生拖入使用框架事件模拟，中文组合输入使用自动化事件；系统输入法、系统文件选择器手势、打印对话框和 Mac 真机操作不属于已完成的自动化验证。样例在专用数据目录创建，测试结束后恢复原有设置与最近记录。
+测试启动真实的隐藏桌面窗口，通过 WebView2 验证界面和文件保存。原生拖入使用框架事件模拟，中文组合输入使用自动化事件；系统输入法、系统文件选择器手势、打印对话框不属于这项 Windows 自动化验证。Mac 原生交互另行验证，记录见 [macOS 构建与验证](docs/macos.md)。样例在专用数据目录创建，测试结束后恢复原有设置与最近记录。
 
 [构建工作流](.github/workflows/build.yml)包含 Windows/macOS 构建与测试配置；远程执行状态以仓库 Actions 记录为准。
 
