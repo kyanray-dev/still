@@ -2,7 +2,7 @@
 
 轻巧、安静的 Markdown 编辑器与阅读器。直接在排版后的正文中书写，保存为普通 Markdown 文件。
 
-[English](README.en.md) · [发行页](https://github.com/kyanray-dev/still/releases/latest) · [许可证](LICENSE)
+[官网与下载](https://still.kyan.uno/) · [English](README.en.md) · [发行页](https://github.com/kyanray-dev/still/releases/latest) · [许可证](LICENSE)
 
 ![Still 的正文编辑界面](docs/images/wysiwyg-light.png)
 

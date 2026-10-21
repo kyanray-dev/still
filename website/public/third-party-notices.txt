@@ -1,0 +1,7 @@
+Still website third-party notices
+
+Three.js 0.186.1: MIT, see /licenses/three-MIT.txt
+Phosphor Icons 2.1.1: MIT, see /licenses/phosphor-icons-MIT.txt
+Manrope fonts (@fontsource/manrope 5.3.0): SIL Open Font License 1.1, see /licenses/manrope-OFL.txt
+
+Original website source follows the repository 0BSD license.

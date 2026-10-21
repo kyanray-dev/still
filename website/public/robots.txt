@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://still.kyan.uno/sitemap.xml

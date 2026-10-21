@@ -1,0 +1,6 @@
+node_modules/
+dist/
+public/downloads/*
+!public/downloads/.gitkeep
+test-results/
+*.log

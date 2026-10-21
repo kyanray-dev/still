@@ -1,0 +1,44 @@
+{
+  "releases": [
+    {
+      "platform": "macos",
+      "kind": "dmg",
+      "version": "1.2.1",
+      "name": "Still-1.2.1-macOS-universal.dmg",
+      "bytes": 3004539,
+      "sha256": "3fe3f86f5c366fd43aaba0e27d599eec756fa1ffa5e1fe5fed9323f7b6e8719c",
+      "requirements": "macOS 14+ · Apple Silicon / Intel",
+      "url": "/downloads/Still-1.2.1-macOS-universal.dmg"
+    },
+    {
+      "platform": "macos",
+      "kind": "zip",
+      "version": "1.2.1",
+      "name": "Still-1.2.1-macOS-universal.zip",
+      "bytes": 2769447,
+      "sha256": "980ab5bd7caf193cdaeb816c2b6ad354b70a803eb7ccbc117506c2d1a4c756fe",
+      "requirements": "macOS 14+ · Apple Silicon / Intel",
+      "url": "/downloads/Still-1.2.1-macOS-universal.zip"
+    },
+    {
+      "platform": "windows",
+      "kind": "installer",
+      "version": "1.2.0",
+      "name": "Still-1.2.0-Windows-x64-Setup.exe",
+      "bytes": 5289619,
+      "sha256": "5cbc0ee3a568141c57c02607edcd14f3ad154fb1fc047ca05ed51605849b927f",
+      "requirements": "Windows 10 / 11 · x64",
+      "url": "/downloads/Still-1.2.0-Windows-x64-Setup.exe"
+    },
+    {
+      "platform": "windows",
+      "kind": "zip",
+      "version": "1.2.0",
+      "name": "Still-1.2.0-Windows-x64.zip",
+      "bytes": 2008740,
+      "sha256": "ecf30648b5668f22e6740a698e9ad8b8990bc222d2dc7cfd56ce7f3b9cd69231",
+      "requirements": "Windows 10 / 11 · x64 · WebView2 Runtime",
+      "url": "/downloads/Still-1.2.0-Windows-x64.zip"
+    }
+  ]
+}

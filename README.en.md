@@ -2,7 +2,7 @@
 
 A quiet, lightweight Markdown editor and reader. Write directly in the formatted document and save ordinary Markdown files.
 
-[简体中文](README.md) · [Releases](https://github.com/kyanray-dev/still/releases/latest) · [License](LICENSE)
+[Website & downloads](https://still.kyan.uno/) · [简体中文](README.md) · [Releases](https://github.com/kyanray-dev/still/releases/latest) · [License](LICENSE)
 
 ![Direct document editing in Still](docs/images/wysiwyg-light.png)
 
