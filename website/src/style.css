@@ -22,3 +22,6 @@
 :root[data-theme=dark] .fallback-sheet{background:#555653;border-color:#70716b;color:#d3d5cc;box-shadow:25px 44px 40px -26px #0008}:root[data-theme=dark] .fallback-sheet i{background:#7f8278}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) .fallback-sheet{background:#555653;border-color:#70716b;color:#d3d5cc;box-shadow:25px 44px 40px -26px #0008}:root:not([data-theme=light]) .fallback-sheet i{background:#7f8278}}
 @media(max-width:760px){.download-help details[open]{grid-column:1/-1}}
+
+/* One quiet canvas behind the page; interactive content retains its own layer. */
+.ambient-background{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;contain:strict}.ambient-background canvas{position:absolute;inset:0;display:block;width:100%;height:100%;pointer-events:none}main,.site-footer{position:relative;z-index:1}.site-header{z-index:10}

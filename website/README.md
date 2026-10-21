@@ -53,7 +53,7 @@ STILL_RELEASE_DIR=../release npm run prepare:downloads
 
 网站默认跟随系统浅色/深色外观，导航中的切换按钮可覆盖选择；偏好保存在本机 `localStorage` 的 `still-site-theme` 中。真实产品截图随外观切换。
 
-Three.js 首屏纸面在浏览器空闲时延迟加载，绘图像素比最高 1.7，动画绘制最高约 30 帧/秒。首屏离开视口或标签页进入后台时停止连续绘制；页脚可手动暂停动效。系统启用 `prefers-reduced-motion` 时纸面保持静态，并关闭平滑滚动和入场动画。
+Three.js 在浏览器空闲时延迟加载两层画面：首屏纸面以约 10.8 秒的周期起伏，卷角与侧光同步变化，最高约 30 帧/秒、像素比最高 1.7；全屏背景是 GPU 变形的三维波面，以缓慢流动的光影衬托静止文字，最高约 24 帧/秒、桌面像素比最高 1.25、手机最高 1。纸面离开视口时停止连续绘制；两层画面在标签页进入后台时均暂停，页脚暂停按钮同时控制它们。系统启用 `prefers-reduced-motion` 时两层保持静态，并关闭平滑滚动和入场动画。
 
 WebGL 不可用、场景初始化失败或渲染上下文丢失时，显示 CSS 静态纸面。禁用 JavaScript 后仍可阅读页面和点击各平台下载链接。自动推荐按钮仅为桌面 Windows 或 macOS 选择对应安装包；其他平台和识别为 iPad 的设备保留下载区入口。
 
@@ -61,4 +61,4 @@ WebGL 不可用、场景初始化失败或渲染上下文丢失时，显示 CSS 
 
 将经过页面检查与安装包校验的静态产物部署到现有服务器，正式域名为 `still.kyan.uno`。Nginx 配置、证书申请与续期、安装包独立目录、发布验证和回滚步骤见 [deploy/README.md](deploy/README.md)。`npm run preview` 仅用于本地预览。
 
-源文件主要位于 `index.html`、`src/main.js`、`src/style.css` 与 `src/paper.js`；设计约束见 [DESIGN.md](DESIGN.md)。应用截图与图标来自本仓库现有公开产品资源。
+源文件主要位于 `index.html`、`src/main.js`、`src/style.css` 与 `src/paper.js`、`src/ambient.js`；设计约束见 [DESIGN.md](DESIGN.md)。应用截图与图标来自本仓库现有公开产品资源。

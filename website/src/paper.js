@@ -151,18 +151,18 @@ export function mountPaperScene(host) {
   }
 
   function updatePaper() {
-    const breath = reducedMotion ? 0 : Math.sin(elapsed * (Math.PI * 2 / 12.6));
+    const breath = reducedMotion ? 0 : Math.sin(elapsed * (Math.PI * 2 / 10.8));
     for (let i = 0; i < positions.count; i += 1) {
       const x = rest[i * 3];
       const y = rest[i * 3 + 1];
       const upper = Math.pow(Math.max(0, (y / height) + 0.5), 4);
       const right = Math.pow(Math.max(0, (x / width) + 0.5), 3);
       const bow = 0.155 * x * x + 0.045 * x * y + 0.018 * y * y;
-      const curl = upper * right * 0.5;
+      const curl = upper * right * (0.5 + breath * 0.15);
       // Let the lifted corner turn inward slightly, like a loose sheet under its own weight.
       positions.setX(i, x - curl * 0.16);
       positions.setY(i, y - curl * 0.2);
-      positions.setZ(i, bow + curl + breath * 0.016 * Math.cos(y * 0.75 + x * 0.4));
+      positions.setZ(i, bow + curl + breath * 0.072 * Math.cos(y * 0.75 + x * 0.4));
     }
     positions.needsUpdate = true;
     paperGeometry.computeVertexNormals();
@@ -182,10 +182,13 @@ export function mountPaperScene(host) {
       pointerX += (targetX - pointerX) * 0.045;
       pointerY += (targetY - pointerY) * 0.045;
     }
-    sculpture.rotation.set(-0.18 + pointerY * 0.025, -0.34 + pointerX * 0.035, -0.18 + breath * 0.006);
-    sculpture.position.set(0.02, 0.07 + breath * 0.045, 0);
-    shadow.scale.setScalar(1 - breath * 0.015);
-    shadowMaterial.opacity = (dark ? 0.2 : 0.8) - breath * 0.035;
+    sculpture.rotation.set(-0.18 + breath * 0.035 + pointerY * 0.04, -0.34 + Math.sin(elapsed * 0.39) * (reducedMotion ? 0 : 0.065) + pointerX * 0.06, -0.18 + breath * 0.026);
+    sculpture.position.set(0.02 + breath * 0.045, 0.07 + breath * 0.16, 0);
+    key.position.x = -3.8 + (reducedMotion ? 0 : Math.sin(elapsed * 0.27) * 1.25);
+    key.position.y = 4.5 + breath * 0.35;
+    shadow.scale.setScalar(1 - breath * 0.055);
+    shadow.position.x = 0.15 + breath * 0.07;
+    shadowMaterial.opacity = (dark ? 0.2 : 0.8) - breath * 0.065;
   }
 
   function showFallback() {

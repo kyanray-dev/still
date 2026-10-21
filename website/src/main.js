@@ -19,8 +19,13 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 const themeButton = document.querySelector('.theme-toggle');
 const motionButton = document.querySelector('#motion-toggle');
 const sceneHost = document.querySelector('#paper-scene');
+const ambientHost = document.querySelector('#ambient-background');
 const preview = document.querySelector('#product-preview');
 let scene;
+let ambientScene;
+let disposed = false;
+let idleHandle;
+let timerHandle;
 let paused = false;
 let themePreference;
 try { themePreference = localStorage.getItem('still-site-theme'); } catch { /* Storage is optional. */ }
@@ -36,13 +41,15 @@ function applyTheme() {
   preview.src = dark ? '/wysiwyg-dark.png' : '/wysiwyg-light.png';
   document.querySelector('meta[name="theme-color"]').content = dark ? '#171b19' : '#f8f9f7';
   scene?.setTheme(dark);
+  ambientScene?.setTheme(dark);
 }
 themeButton.hidden = false;
-themeButton.addEventListener('click', () => {
+function toggleTheme() {
   themePreference = isDark() ? 'light' : 'dark';
   try { localStorage.setItem('still-site-theme', themePreference); } catch { /* Storage is optional. */ }
   applyTheme();
-});
+}
+themeButton.addEventListener('click', toggleTheme);
 themeQuery.addEventListener('change', applyTheme);
 applyTheme();
 
@@ -61,27 +68,56 @@ if (/win/i.test(platform)) {
 
 function applyMotionPreference() {
   scene?.setPaused?.(paused || reducedMotion.matches);
-  motionButton.hidden = !scene || reducedMotion.matches || sceneHost.dataset.sceneState === 'fallback';
+  ambientScene?.setPaused?.(paused || reducedMotion.matches);
+  const available = sceneHost.dataset.sceneState === 'ready' || ambientHost.dataset.sceneState === 'ready';
+  motionButton.hidden = !available || reducedMotion.matches;
   motionButton.textContent = paused ? '开启动效' : '暂停动效';
   motionButton.setAttribute('aria-pressed', String(paused));
 }
-motionButton.addEventListener('click', () => { paused = !paused; applyMotionPreference(); });
+function toggleMotion() { paused = !paused; applyMotionPreference(); }
+motionButton.addEventListener('click', toggleMotion);
 reducedMotion.addEventListener('change', applyMotionPreference);
 
 async function startScene() {
-  try {
-    const { mountPaperScene } = await import('./paper.js');
-    scene = await mountPaperScene(sceneHost);
-    applyTheme();
-    applyMotionPreference();
-  } catch {
-    sceneHost.dataset.sceneState = 'fallback';
-  }
+  // Independent initialization keeps either artwork available if the other fails.
+  await Promise.allSettled([
+    (async () => {
+      try {
+        const { mountPaperScene } = await import('./paper.js');
+        if (disposed) return;
+        scene = mountPaperScene(sceneHost);
+        applyTheme();
+        applyMotionPreference();
+      } catch { if (!disposed) sceneHost.dataset.sceneState = 'fallback'; }
+    })(),
+    (async () => {
+      try {
+        const { mountAmbientScene } = await import('./ambient.js');
+        if (disposed) return;
+        ambientScene = mountAmbientScene(ambientHost);
+        applyTheme();
+        applyMotionPreference();
+      } catch { if (!disposed) ambientHost.dataset.sceneState = 'fallback'; }
+    })(),
+  ]);
 }
-// Keep the useful HTML and download links independent from the 3D scene.
-if ('requestIdleCallback' in window) requestIdleCallback(() => void startScene(), { timeout: 900 });
-else setTimeout(() => void startScene(), 120);
+// Content and download links are usable before either decorative scene loads.
+if ('requestIdleCallback' in window) idleHandle = requestIdleCallback(() => void startScene(), { timeout: 900 });
+else timerHandle = setTimeout(() => void startScene(), 120);
 
-const stop = () => { scene?.dispose(); themeQuery.removeEventListener('change', applyTheme); reducedMotion.removeEventListener('change', applyMotionPreference); };
-window.addEventListener('pagehide', event => { if (!event.persisted) stop(); });
+function stop() {
+  if (disposed) return;
+  disposed = true;
+  if (idleHandle !== undefined) cancelIdleCallback(idleHandle);
+  if (timerHandle !== undefined) clearTimeout(timerHandle);
+  scene?.dispose();
+  ambientScene?.dispose();
+  themeQuery.removeEventListener('change', applyTheme);
+  reducedMotion.removeEventListener('change', applyMotionPreference);
+  themeButton.removeEventListener('click', toggleTheme);
+  motionButton.removeEventListener('click', toggleMotion);
+  window.removeEventListener('pagehide', onPageHide);
+}
+function onPageHide(event) { if (!event.persisted) stop(); }
+window.addEventListener('pagehide', onPageHide);
 if (import.meta.hot) import.meta.hot.dispose(stop);
